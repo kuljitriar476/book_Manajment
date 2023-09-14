@@ -17,8 +17,9 @@ const createAuthor = async function (req, res) {
       address,
       role,
       password,
+      booksId,
     } = data;
-// regex 22 line
+    // regex 22 line
     const checkmobileNumber = /^[1-9]\d{9}$/.test(mobileNumber);
     console.log("checkmobileNumber", checkmobileNumber);
     if (!checkmobileNumber) {
@@ -47,6 +48,7 @@ const createAuthor = async function (req, res) {
       address,
       role,
       password: hashPassword,
+      booksId,
     });
     await authorData.save();
     res.status(200).send({
@@ -87,6 +89,7 @@ const loginAuthor = async function (req, res) {
         lastName: authorData.lastName,
         email: authorData.email,
         role: authorData.role,
+        _id: authorData._id,
       },
       "secrete key",
       { expiresIn: "1h" }
@@ -102,10 +105,47 @@ const loginAuthor = async function (req, res) {
 
 const getAllAuthor = async function (req, res) {
   try {
-    const authorData = await authorModel.find();
+    //const authorData = await authorModel.find();
+    const authorData = await authorModel.aggregate([
+      {
+        $facet: {
+          data: [
+            {
+              $lookup: {
+                from: "books",
+                localField: "booksId",
+                foreignField: "_id",
+                pipeline: [
+                  {
+                    $project: {
+                      title: 1,
+                      name: 1,
+                    },
+                  },
+
+                ],
+                as: "booksDetails",
+              },
+            },
+            {
+              $unwind: {
+                path: "$booksDetails",
+                preserveNullAndEmptyArrays: true,
+              },
+            },
+          ],
+          count: [
+            {
+              $count: "total",
+            },
+          ],
+        },
+      },
+    ]);
     res.status(200).send({
       message: "get All author fetch successfully",
-      data: authorData,
+      count: authorData[0]?.count[0]?.total,
+      data: authorData[0]?.data,
     });
   } catch (error) {
     console.log(error);
@@ -138,6 +178,7 @@ const updateAuthor = async function (req, res) {
       address,
       role,
       password,
+      booksId,
     } = data;
 
     const authorData = await authorModel.findOneAndUpdate(
@@ -151,6 +192,7 @@ const updateAuthor = async function (req, res) {
         address,
         role,
         password,
+        booksId,
       },
       { new: true }
     );

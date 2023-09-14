@@ -37,6 +37,10 @@ const authorSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  booksId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"books",
+  },
 });
 
 module.exports = mongoose.model("author", authorSchema);
